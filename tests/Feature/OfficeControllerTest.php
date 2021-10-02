@@ -8,6 +8,7 @@ use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class OfficeControllerTest extends TestCase
@@ -48,15 +49,15 @@ class OfficeControllerTest extends TestCase
     /**
      * @test
      */
-    public function itFiltersByHostId()
+    public function itFiltersByUserId()
     {
         Office::factory(3)->create();
 
-        $host = User::factory()->create();
-        $office = Office::factory()->for($host)->create();
+        $user = User::factory()->create();
+        $office = Office::factory()->for($user)->create();
 
         $response = $this->get(
-            '/api/offices?host_id=' . $host->id
+            '/api/offices?user_id=' . $user->id
         );
 
         $response->assertOk()
@@ -67,7 +68,7 @@ class OfficeControllerTest extends TestCase
     /**
      * @test
      */
-    public function itFiltersByUserId()
+    public function itFiltersByVisitorId()
     {
         Office::factory(3)->create();
 
@@ -78,7 +79,7 @@ class OfficeControllerTest extends TestCase
         Reservation::factory()->for($office)->for($user)->create();
 
         $response = $this->get(
-            '/api/offices?user_id=' . $user->id
+            '/api/offices?visitor_id=' . $user->id
         );
 
         $response->assertOk()
@@ -141,7 +142,7 @@ class OfficeControllerTest extends TestCase
 
         $response = $this->get('/api/offices?lat=38.720661384644046&lng=-9.16044783453807');
 
-        $response->assertOk()->dump()
+        $response->assertOk()
             ->assertJsonPath('data.0.title', 'Torres Vedras')
             ->assertJsonPath('data.1.title', 'Leiria');
 
@@ -163,7 +164,6 @@ class OfficeControllerTest extends TestCase
 
         $office->tags()->attach($tag);
         $office->images()->create(['path' => 'image.jpg']);
-
         Reservation::factory()->for($office)->create(['status' => Reservation::STATUS_ACTIVE]);
         Reservation::factory()->for($office)->create(['status' => Reservation::STATUS_CANCELLED]);
 
@@ -174,5 +174,19 @@ class OfficeControllerTest extends TestCase
             ->assertJsonCount(1, 'data.tags')
             ->assertJsonCount(1, 'data.images')
             ->assertJsonPath('data.user.id', $user->id);
+    }
+
+    /**
+     * @test
+     */
+    public function itDoesntAllowCreatingIfScopeIsNotProvided()
+    {
+        $user = User::factory()->create();
+
+        Sanctum::actingAs($user, []);
+
+        $response = $this->postJson('/api/offices');
+
+        $response->assertForbidden();
     }
 }

@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Office;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Http\Client\Factory as ClientFactory;
 
 class OfficeFactory extends Factory
 {
@@ -34,5 +35,19 @@ class OfficeFactory extends Factory
             'price_per_day' => $this->faker->numberBetween(1_000, 2_000),
             'monthly_discount' => 0
         ];
+    }
+
+    public function pending(): Factory
+    {
+        return $this->state([
+            'approval_status' => Office::APPROVAL_PENDING,
+        ]);
+    }
+
+    public function hidden(): Factory
+    {
+        return $this->state([
+            'hidden' => true,
+        ]);
     }
 }
